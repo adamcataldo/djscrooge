@@ -22,10 +22,8 @@ Dependencies:
 from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_not_equal
-from proboscis.asserts import assert_true
 from proboscis.asserts import assert_false
-from proboscis.asserts import assert_raises
-from backtest import *
+from backtest import Portfolio, EndOfDay, Split, OpenPosition, Backtest, Strategy, Taxes, Commissions
 from datetime import date
 from datetime import timedelta
 from proboscis.decorators import before_class
@@ -121,7 +119,20 @@ def get_mock_end_of_day_class(open_prices, high_prices=None, low_prices=None, cl
         
   return MockEndOfDay
 
-@test(groups=['end_of_day'], depends_on_groups=['portfolio'])
+@test(groups=['split'])
+class TestSplit(object):
+  """Tests the Split object."""
+  
+  @test
+  def test_basic(self):
+    """Test the basic operators of the Split class."""
+    assert_equal(Split(1,2), Split(1,2))
+    assert_not_equal(Split(2,1), Split(1,2))
+    assert_equal(hash(Split(1,2)), hash(Split(1,2)))
+    assert_equal(str(Split(2,1)), '2:1')
+    assert_equal(repr(Split(2,1)), 'Split(2,1)')
+
+@test(groups=['end_of_day'], depends_on_groups=['portfolio', 'split'])
 class TestEndOfDay(object):
   """Tests the EndOfDay class"""
   

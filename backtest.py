@@ -123,6 +123,28 @@ class Split(object):
     """
     self.numerator = numerator
     self.denominator = denominator
+    
+  def __eq__(self, other):
+    """Returns True if this equals the other object."""
+    if type(other) == Split:
+      return self.numerator == other.numerator and self.denominator == other.denominator
+    return False
+  
+  def _ne__(self, other):
+    """Returns False if this equals the other object."""
+    return not self.__eq__(other)
+  
+  def __hash__(self):
+    """Returns a hash code for this object."""
+    return hash(self.numerator) ^ hash(self.denominator)
+  
+  def __str__(self):
+    """Returns a string representation of this object."""
+    return str(self.numerator) + ':' + str(self.denominator)
+  
+  def __repr__(self):
+    """Returns the official representation of this object."""
+    return 'Split(' + str(self.numerator) + ',' + str(self.denominator) + ')'
 
 class EndOfDay(object):
   """The base class for data sources providing end-of-day data for stocks
@@ -134,6 +156,7 @@ class EndOfDay(object):
     self.high_prices -- The ordered list of daily-high prices.
     self.low_prices -- The ordered list of daily-low prices.
     self.close_prices -- The ordered list of closing prices for each day.
+    self.adj_close_prices -- The ordered list of closing prices for each day, adjusted for dividends & splits.
     self.dividends -- The ordered list of dividends for each day, if any.
     self.splits -- The ordered list of Split objects representing each day's split,
                   if any.
@@ -141,7 +164,8 @@ class EndOfDay(object):
                   
     All of these lists should be the same size. On most days, there is no dividend
     and no split. For such days, the corresponding entry in the self.dividends and
-    self.splits objects should be None. 
+    self.splits objects should be None. All prices should be in cents. Only
+    dividends and adjusted close prices can be in fractions of a cent.
   """
   
   def __init__(self, symbol, start_date, end_date):
@@ -161,6 +185,7 @@ class EndOfDay(object):
     self.high_prices = []
     self.low_prices = []
     self.close_prices = []
+    self.adj_close_prices = []
     self.dividends = []
     self.splits = []
     self.volumes = []
@@ -337,9 +362,8 @@ class Backtest(object):
     self.values = []
     for i in range(0,len(self.dates)):
       self.simulation_date = self.dates[i]
-      self.strategy.execute()
-      symbols = self.portfolio.symbols
       total_stock_value = 0
+      symbols = self.portfolio.symbols
       for symbol in symbols:
         positions = self.portfolio.get_positions(symbol)
         symbol_data = self.get_end_of_day(symbol)
@@ -348,7 +372,7 @@ class Backtest(object):
         split = symbol_data.splits[k]
         if dividend is not None:
           for position in positions:
-            amount = dividend * position.remaining_shares
+            amount = int(dividend * position.remaining_shares)
             tax = self.taxes.dividend_tax(symbol, amount, position.purchase_date)
             self.portfolio.cash += (amount - tax)
         if split is not None:
@@ -357,6 +381,11 @@ class Backtest(object):
             old_shares = position.remaining_shares
             position.remaining_shares = int(math.ceil(multiplier * old_shares))
             position.cost_basis = int(round((1.0 * old_shares) * position.cost_basis / position.remaining_shares))
+      self.strategy.execute()
+      for symbol in symbols:
+        positions = self.portfolio.get_positions(symbol)
+        symbol_data = self.get_end_of_day(symbol)
+        k = i - self.__date_offsets[symbol]
         for position in positions:
           total_stock_value += symbol_data.close_prices[k] * position.remaining_shares
       portfolio.cash -= self.commissions.fees()
