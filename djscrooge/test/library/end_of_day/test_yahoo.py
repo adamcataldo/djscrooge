@@ -15,14 +15,17 @@ Copyright (C) 2012  James Adam Cataldo
 
     You should have received a copy of the GNU General Public License
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
+
+Dependencies: 
+    proboscis: <https://github.com/rackspace/python-proboscis>
 """
 from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_true
 from StringIO import StringIO
-from library.end_of_day.yahoo import HeadingCsv, Yahoo
+from djscrooge.library.end_of_day.yahoo import HeadingCsv, Yahoo
 from datetime import date
-from backtest import Split
+from djscrooge.backtest import Split
 
 @test(groups=['csv'])
 class TestHeadingCsv(object):
@@ -76,6 +79,12 @@ class TestYahoo:
     yahoo = Yahoo('GE', date(2000, 5, 5), date(2000, 5, 9))
     assert_equal(yahoo.close_prices, [15800, 5244, 5213])
     assert_equal(yahoo.splits, [None, Split(3,1), None]) 
+    
+  @test
+  def test_dates(self):
+    """Test that dates are in the correct order."""
+    yahoo = Yahoo('GE', date(2012, 5, 7), date(2012, 5, 9))
+    assert_equal(yahoo.dates, [date(2012, 5, 7), date(2012, 5, 8), date(2012, 5, 9)])
     
 
 if __name__ == "__main__":

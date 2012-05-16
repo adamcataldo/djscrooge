@@ -23,7 +23,7 @@ from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_not_equal
 from proboscis.asserts import assert_false
-from backtest import Portfolio, EndOfDay, Split, OpenPosition, Backtest, Strategy, Taxes, Commissions
+from djscrooge.backtest import Portfolio, EndOfDay, Split, OpenPosition, Backtest, Strategy, Taxes, Commissions
 from datetime import date
 from datetime import timedelta
 from proboscis.decorators import before_class
@@ -170,6 +170,17 @@ class TestEndOfDay(object):
     backtest = Backtest(start, start + timedelta(3), end_of_day_class=end_of_day_class, portfolio=portfolio)
     expected_values = [1, 2, 2, 2]
     assert_equal(backtest.values, expected_values)
+    
+  @test
+  def test_get_index_from_date(self):
+    """Test the get_index_from_date method."""
+    end_of_day_class = get_mock_end_of_day_class([1, 1, 1])
+    start = date(2000,1,1)
+    eod = end_of_day_class('FOO', start, start + timedelta(2))
+    assert_equal(eod.get_index_from_date(start), 0)
+    assert_equal(eod.get_index_from_date(start + timedelta(1)), 1)
+    assert_equal(eod.get_index_from_date(start + timedelta(2)), 2)
+    
     
 @test(groups=['backtest'], depends_on_groups=['portfolio', 'end_of_day'])
 class TestBacktest(object):

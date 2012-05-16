@@ -21,7 +21,7 @@ Copyright (C) 2012  James Adam Cataldo
     SYMBOL_FOR_ALL_DATES -- The stock symbol used to retrieve all possible
                             simulation dates
 """
-from data_types import OrderedSet, iterator_to_list, index_of_sorted_list
+from djscrooge.data_types import OrderedSet, iterator_to_list, index_of_sorted_list
 import math    
 
 SYMBOL_FOR_ALL_DATES = 'GE'
@@ -189,6 +189,18 @@ class EndOfDay(object):
     self.dividends = []
     self.splits = []
     self.volumes = []
+    
+  def get_index_from_date(self, dateobj):
+    """Gets the index into the dates array for the given date Object.
+    
+    This has O(1) amortized cost, assuming this is called once for
+    each date during a simulation.
+    """
+    if not hasattr(self, '_EndOfDay__date_index'):
+      self.__date_index = {}
+      for i in range(0, len(self.dates)):
+        self.__date_index[self.dates[i]] = i
+    return self.__date_index[dateobj]
 
 class BacktestComponent(object):
   """A class used in a backtest.
@@ -330,6 +342,9 @@ class Backtest(object):
   strategy -- The Strategy object being tested.
   dates -- The dates tested
   values -- The daily closing values of the portfolio.
+  start_date -- The start date of the simulation.
+  end_date -- The end date of the simulation.
+  end_of_day_class -- The class used to generate EndOfDay data.
   """
     
   def __init__(self, start_date, end_date, 
@@ -348,12 +363,12 @@ class Backtest(object):
     end_date -- The datetime.date object representing the last date to simulate.
     portfolio -- The Portfolio object representing the current holdings during the simulation.
     """
-    self.__start_date = start_date
-    self.__end_date = end_date
+    self.start_date = start_date
+    self.end_date = end_date
     self.commissions = commissions_class(self)
     self.taxes = taxes_class(self)
     self.strategy = strategy_class(self)
-    self.__end_of_day_class = end_of_day_class
+    self.end_of_day_class = end_of_day_class
     self.portfolio = portfolio
     self.__end_of_day_items = {}
     self.__date_offsets = { SYMBOL_FOR_ALL_DATES : 0 }
@@ -446,7 +461,7 @@ class Backtest(object):
     end_date of the simulation.
     """
     if not self.__end_of_day_items.has_key(symbol):
-      self.__end_of_day_items[symbol] = self.__end_of_day_class(symbol, self.__start_date, self.__end_date)
+      self.__end_of_day_items[symbol] = self.end_of_day_class(symbol, self.start_date, self.end_date)
     if not self.__date_offsets.has_key(symbol):
       dates = self.__end_of_day_items[SYMBOL_FOR_ALL_DATES].dates
       self.__date_offsets[symbol] = index_of_sorted_list(self.__end_of_day_items[symbol].dates[0], dates)

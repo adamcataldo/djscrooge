@@ -17,8 +17,8 @@ Copyright (C) 2012  James Adam Cataldo
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from backtest import EndOfDay
-from backtest import Split
+from djscrooge.backtest import EndOfDay
+from djscrooge.backtest import Split
 from urllib2 import urlopen
 from datetime import date
 
@@ -101,3 +101,4 @@ class Yahoo(EndOfDay):
     self.adj_close_prices.reverse()
     self.dividends.reverse()
     self.splits.reverse()
+    self.dates.reverse()

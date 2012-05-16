@@ -15,15 +15,18 @@ Copyright (C) 2012  James Adam Cataldo
 
     You should have received a copy of the GNU General Public License
     along with DJ Scrooge.  If not, see <http://www.gnu.org/licenses/>.
+
+Dependencies: 
+    proboscis: <https://github.com/rackspace/python-proboscis>
 """
 from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_true
 from proboscis.asserts import assert_false
 from proboscis.asserts import assert_raises
-from data_types import OrderedSet
-from data_types import iterator_to_list
-from data_types import index_of_sorted_list
+from djscrooge.data_types import OrderedSet
+from djscrooge.data_types import iterator_to_list
+from djscrooge.data_types import index_of_sorted_list
 
 @test
 class TestOrderedSet(object):
