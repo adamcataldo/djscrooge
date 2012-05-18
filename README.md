@@ -3,13 +3,13 @@
 
 DJ Scrooge is and easy-to-use backtesting API, written in Python.
 
-To get started, checkout http://djscrooge.com! This should get you up and running in no time.
+To get started, checkout http://djscrooge.com. This should get you up and running in no time.
 
 
 Bug tracker
 -----------
 
-Have a bug? Please create an issue here on GitHub!
+Have a bug? Please create an issue here on GitHub:
 
 https://github.com/adamcataldo/djscrooge/issues
 
