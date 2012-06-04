@@ -72,10 +72,15 @@ class Yahoo(EndOfDay):
       self.close_prices.append(int(line['Close'].replace('.', '')))
       self.adj_close_prices.append(int(line['Adj Close'].replace('.', '')))
       self.volumes.append(int(line['Volume']))
+    self.open_prices.reverse()
+    self.high_prices.reverse()
+    self.low_prices.reverse()
+    self.close_prices.reverse()
+    self.adj_close_prices.reverse()
+    self.dates.reverse()
     url = url.replace('table.csv', 'x')
     url += '&g=v&y=0'
     data = urlopen(url)
-    curr_date_index = len(self.dates) - 1
     self.dividends = [None] * len(self.dates)
     self.splits = [None] * len(self.dates)
     for line in data:
@@ -84,21 +89,9 @@ class Yahoo(EndOfDay):
         datestr = parts[1].strip()
         dateobj = date(int(datestr[0:4]), int(datestr[4:6]), int(datestr[6:]))
         dividend = float(parts[2].strip()) * 100
-        while (self.dates[curr_date_index] < dateobj):
-          curr_date_index -= 1
-        self.dividends[curr_date_index] = dividend
+        self.dividends[self.get_index_from_date(dateobj)] = dividend
       elif parts[0] == 'SPLIT':
         datestr = parts[1].strip()
         dateobj = date(int(datestr[0:4]), int(datestr[4:6]), int(datestr[6:]))
         split = parts[2].strip().split(':')
-        while (self.dates[curr_date_index] < dateobj):
-          curr_date_index -= 1
-        self.splits[curr_date_index] = Split(int(split[0]), int(split[1]))
-    self.open_prices.reverse()
-    self.high_prices.reverse()
-    self.low_prices.reverse()
-    self.close_prices.reverse()
-    self.adj_close_prices.reverse()
-    self.dividends.reverse()
-    self.splits.reverse()
-    self.dates.reverse()
+        self.splits[self.get_index_from_date(dateobj)] = Split(int(split[0]), int(split[1]))

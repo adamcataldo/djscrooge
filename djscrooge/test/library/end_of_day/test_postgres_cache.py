@@ -1,4 +1,4 @@
-"""This file contains the test_yahoo module of the DJ Scrooge backtesting API.
+"""This file contains the test_postgres_cache module of the DJ Scrooge backtesting API.
 Copyright (C) 2012  James Adam Cataldo
 
     This file is part of Pengoe.
@@ -15,49 +15,32 @@ Copyright (C) 2012  James Adam Cataldo
 
     You should have received a copy of the GNU General Public License
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
-
+    
 Dependencies: 
     proboscis: <https://github.com/rackspace/python-proboscis>
+    sqlalchemy: <http://www.sqlalchemy.org/>
 """
 from proboscis import test
 from proboscis.asserts import assert_equal
-from proboscis.asserts import assert_true
-from StringIO import StringIO
-from djscrooge.library.end_of_day.yahoo import HeadingCsv, Yahoo
 from djscrooge.test.library.end_of_day.test_end_of_day import TestEndOfDay
-
-@test(groups=['csv'])
-class TestHeadingCsv(object):
-  """Tests for the HeadingCsv class."""
-  
-  @test
-  def testBasic(self):
-    """Test that a simple CSV file object is correctly parsed."""
-    f = StringIO("Foo,Bar,Baz\n1,2,3\n4,5,6")
-    csv = HeadingCsv(f)
-    row = 0
-    for line in csv:
-      assert_equal(len(line), 3)
-      assert_true(line.has_key('Foo'))
-      assert_true(line.has_key('Bar'))
-      assert_true(line.has_key('Baz'))
-      if row == 0:
-        assert_equal(line['Foo'], '1')
-        assert_equal(line['Bar'], '2')
-        assert_equal(line['Baz'], '3')
-      elif row == 1:
-        assert_equal(line['Foo'], '4')
-        assert_equal(line['Bar'], '5')
-        assert_equal(line['Baz'], '6')
-      row += 1
-    assert_equal(row, 2)
+from djscrooge.library.end_of_day.postgres_cache import postgres
+from datetime import date
 
 @test(depends_on_groups=['csv'])
-class TestYahoo(TestEndOfDay):
+class TestPostgres(TestEndOfDay):
   """Tests the Yahoo EndOfDay class."""
   
   def __init__(self):
-    super(TestYahoo, self).__init__(Yahoo)   
+    super(TestPostgres, self).__init__(postgres())   
+    
+  @test
+  def test_tie(self):
+    """Test that a single day for TIE works."""
+    eod_class = postgres()
+    eod = eod_class('TIE', date(2002, 1, 15), date(2002, 1, 15))
+    assert_equal(len(eod.close_prices), 1)
+    assert_equal(len(eod.dividends), 1)
+    assert_equal(len(eod.splits), 1)
 
 if __name__ == "__main__":
   from proboscis import TestProgram

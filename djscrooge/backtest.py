@@ -23,9 +23,8 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from djscrooge.data_types import OrderedSet, iterator_to_list, index_of_sorted_list
 import math    
-
-SYMBOL_FOR_ALL_DATES = 'GE'
-
+from djscrooge.config import Config
+from collections import namedtuple
   
 class OpenPosition(object):
   """A class representing previously purchased shares.
@@ -200,7 +199,9 @@ class EndOfDay(object):
       self.__date_index = {}
       for i in range(0, len(self.dates)):
         self.__date_index[self.dates[i]] = i
-    return self.__date_index[dateobj]
+    if self.__date_index.has_key(dateobj):
+      return self.__date_index[dateobj]
+    return None
 
 class BacktestComponent(object):
   """A class used in a backtest.
@@ -352,7 +353,8 @@ class Backtest(object):
                taxes_class=Taxes, 
                strategy_class=Strategy, 
                end_of_day_class=EndOfDay,
-               portfolio=Portfolio(int(1e7))):
+               portfolio=Portfolio(int(1e7)),
+               cache=True):
     """Construct a Backtest object and run the simulation.
     
     commissions_class -- The class of the Commissions class.
@@ -362,6 +364,7 @@ class Backtest(object):
     start_date -- The datetime.date object representing the first date to simulate.
     end_date -- The datetime.date object representing the last date to simulate.
     portfolio -- The Portfolio object representing the current holdings during the simulation.
+    cache -- True if EndOfDay ojbects should be cached.
     """
     self.start_date = start_date
     self.end_date = end_date
@@ -371,20 +374,23 @@ class Backtest(object):
     self.end_of_day_class = end_of_day_class
     self.portfolio = portfolio
     self.__end_of_day_items = {}
-    self.__date_offsets = { SYMBOL_FOR_ALL_DATES : 0 }
-    ge = self.get_end_of_day(SYMBOL_FOR_ALL_DATES)
+    symbol_for_all_dates = Config().BACKTEST_SYMBOL_FOR_ALL_DATES
+    self.__date_offsets = { symbol_for_all_dates : 0 }
+    ge = self.get_end_of_day(symbol_for_all_dates)
     self.dates = ge.dates 
     self.values = []
+    self.cache = cache
     for i in range(0,len(self.dates)):
       self.simulation_date = self.dates[i]
       total_stock_value = 0
       symbols = self.portfolio.symbols
       for symbol in symbols:
         positions = self.portfolio.get_positions(symbol)
-        symbol_data = self.get_end_of_day(symbol)
-        k = i - self.__date_offsets[symbol]
-        dividend = symbol_data.dividends[k]
-        split = symbol_data.splits[k]
+        symbol_data = self.get_close_data(symbol, self.dates[i])
+        if symbol_data is None:
+          continue
+        dividend = symbol_data.dividend
+        split = symbol_data.split
         if dividend is not None:
           for position in positions:
             amount = int(dividend * position.remaining_shares)
@@ -395,14 +401,18 @@ class Backtest(object):
           for position in positions:
             old_shares = position.remaining_shares
             position.remaining_shares = int(math.ceil(multiplier * old_shares))
-            position.cost_basis = int(round((1.0 * old_shares) * position.cost_basis / position.remaining_shares))
+            if position.remaining_shares == 0:
+              continue
+            else:
+              position.cost_basis = int(round((1.0 * old_shares) * position.cost_basis / position.remaining_shares))
       self.strategy.execute()
       for symbol in symbols:
         positions = self.portfolio.get_positions(symbol)
-        symbol_data = self.get_end_of_day(symbol)
-        k = i - self.__date_offsets[symbol]
+        symbol_data = self.get_close_data(symbol, self.dates[i])
+        if symbol_data is None:
+          continue
         for position in positions:
-          total_stock_value += symbol_data.close_prices[k] * position.remaining_shares
+          total_stock_value += symbol_data.close_price * position.remaining_shares
       portfolio.cash -= self.commissions.fees()
       self.values.append(total_stock_value + portfolio.cash)
             
@@ -451,7 +461,27 @@ class Backtest(object):
         sell_helper(symbol, position_shares, price_per_share, position)
     else:
       sell_helper(symbol, shares, price_per_share, open_position)
-       
+      
+  def get_close_data(self, symbol, date):
+    """Returns a named tuple with close_price, dividend, and split data."""
+    CloseData = namedtuple('CloseData', ['close_price', 'dividend', 'split'])
+    if self.cache:
+      symbol_data = self.get_end_of_day(symbol)
+      i = self.__end_of_day_items[Config().BACKTEST_SYMBOL_FOR_ALL_DATES].get_index_from_date(date)
+      if i == None:
+        return None
+      k = i - self.__date_offsets[symbol]
+      dividend = symbol_data.dividends[k]
+      split = symbol_data.splits[k]
+      close_price = symbol_data.close_prices[k]
+      return CloseData(close_price, dividend, split)
+    else:
+      eod = self.end_of_day_class(symbol, date, date)
+      if len(eod.close_prices) == 0:
+        return None
+      return CloseData(eod.close_prices[0], eod.dividends[0], eod.splits[0])
+
+    
   def get_end_of_day(self, symbol):
     """Gets the EndOfDay object associated with the given stock.
     
@@ -463,6 +493,6 @@ class Backtest(object):
     if not self.__end_of_day_items.has_key(symbol):
       self.__end_of_day_items[symbol] = self.end_of_day_class(symbol, self.start_date, self.end_date)
     if not self.__date_offsets.has_key(symbol):
-      dates = self.__end_of_day_items[SYMBOL_FOR_ALL_DATES].dates
+      dates = self.__end_of_day_items[Config().BACKTEST_SYMBOL_FOR_ALL_DATES].dates
       self.__date_offsets[symbol] = index_of_sorted_list(self.__end_of_day_items[symbol].dates[0], dates)
     return self.__end_of_day_items[symbol]
