@@ -58,23 +58,7 @@ class BiggestLoser(Strategy):
   
   def execute(self):
     if not self.initialized:
-      file_name = '/var/tmp/biggest_loser.txt'
-      if os.path.exists(file_name):
-        self.biggest_loser = {}
-        with open(file_name, 'r') as f:
-          for line in f:
-            parts = line.split(',')
-            d = datetime.strptime(parts[0], "%Y-%m-%d").date()
-            percentage = float(parts[1])
-            symbol = parts[2].strip()
-            self.biggest_loser[d] = DailyReturn(percentage, symbol)
-        self.start_date_minus_one = min(self.biggest_loser.keys())
-      else:
-        self.initialize_tables()
-        with open(file_name, 'w') as f:
-          for key in self.biggest_loser.keys():
-            t = self.biggest_loser[key]
-            f.write(str(key) + ',' + str(t.percentage) + ',' + t.symbol + '\n')
+      self.initialize_tables()
       self.initialized = True
     backtest = self.backtest
     t = backtest.simulation_date
