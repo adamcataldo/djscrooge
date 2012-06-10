@@ -18,7 +18,7 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from djscrooge.backtest import Strategy
 from djscrooge.config import Config
-from datetime import timedelta, datetime
+from datetime import timedelta
 import os,sys
 from collections import namedtuple
 
