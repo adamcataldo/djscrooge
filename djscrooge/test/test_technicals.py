@@ -18,7 +18,7 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from proboscis import test
 from proboscis.asserts import assert_equal
-from djscrooge.technicals import simple_moving_average
+from djscrooge.technicals import simple_moving_average, annulaized_return
 from djscrooge.backtest import EndOfDay
 from datetime import date, timedelta
 
@@ -35,7 +35,15 @@ def test_simple_moving_average():
   expected = [0.0, 0.5, 1.5, 2.5, 3.5, 4.5]
   actual = simple_moving_average(end_of_day, 2)
   assert_equal(actual, expected)
-
+  
+@test
+def test_annualized_return():
+  """Test the annualized_return function."""
+  start = date(2001, 1, 1)
+  end = date(2005, 1, 1)
+  actual = annulaized_return(1, 16, start, end)
+  assert_equal(actual, 100.0)
+  
 if __name__ == "__main__":
   from proboscis import TestProgram
   TestProgram().run_and_exit()

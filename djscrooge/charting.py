@@ -60,3 +60,4 @@ def chart_backtest(*backtests, **keywords):
     plt.savefig(keywords['file_name'])
   else:
     plt.show()
+  plt.close()

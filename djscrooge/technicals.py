@@ -30,3 +30,12 @@ def simple_moving_average(end_of_day, window):
     else:
       moving_average.append(sum(end_of_day.adj_close_prices[(i+1-window):(i+1)]) * 1.0 / window)
   return moving_average
+
+def annulaized_return(start_price, end_price, start_date, end_date):
+  """Computes the annualized return, as a percentage.
+  
+  Note that this routine assumes 365.25 days per year, to properly account
+  for leap years.
+  """
+  years = (end_date - start_date).days / 365.25
+  return ((end_price * 1.0 / start_price) ** (1.0 / years) - 1.0) * 100.0

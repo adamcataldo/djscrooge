@@ -19,7 +19,7 @@ Copyright (C) 2012  James Adam Cataldo
 from djscrooge.backtest import Strategy
 from djscrooge.config import Config
 from datetime import timedelta
-import os,sys
+import os
 from collections import namedtuple
 
 DailyReturn = namedtuple('DailyReturn', ['percentage', 'symbol'])
@@ -43,7 +43,6 @@ class BiggestLoser(Strategy):
       percentage = ((1.0 * eod.adj_close_prices[i]) / eod.adj_close_prices[i - 1] - 1) * 100
       self.biggest_loser[t] = DailyReturn(percentage, symbol)
     pwd = os.path.dirname(__file__)
-    sys.path.append(pwd)
     with open (pwd + '/s_p_500_constituents', 'r') as f:
       for line in f:
         symbol = line.strip()

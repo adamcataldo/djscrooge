@@ -18,7 +18,7 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from djscrooge.backtest import Backtest
 from datetime import date
-from djscrooge.library.end_of_day.postgres_cache import postgres
+from djscrooge.library.end_of_day.postgres_cache import Postgres
 from djscrooge.charting import chart_backtest
 from djscrooge.library.strategy.biggest_loser import BiggestLoser
 from djscrooge.library.commissions.wells_pma_commissions import WellsPMACommissions
@@ -30,10 +30,10 @@ def main():
   end_date = date(2012, 5, 15)
   buy_hold_test = Backtest(start_date, end_date, commissions_class=WellsPMACommissions, 
                       strategy_class=BuyHoldSPY, taxes_class=CaliforniaTaxes,
-                      end_of_day_class=postgres())
+                      end_of_day_class=Postgres)
   moving_average_test = Backtest(start_date, end_date, commissions_class=WellsPMACommissions, 
                                  strategy_class=BiggestLoser, taxes_class=CaliforniaTaxes,
-                                 end_of_day_class=postgres(), cache=False)
+                                 end_of_day_class=Postgres, cache=False)
   chart_backtest(buy_hold_test, moving_average_test, labels=['Buy & Hold', 'BiggestLoser.'], colors=['g', 'b'], title='Strategy Comparison')
         
 if __name__ == '__main__':

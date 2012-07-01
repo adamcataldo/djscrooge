@@ -21,7 +21,20 @@ from djscrooge.backtest import EndOfDay
 from djscrooge.backtest import Split
 from urllib2 import urlopen
 from datetime import date
+from time import sleep
 
+def robust_urlopen(url):
+  for i in [0, 1, 2]:
+    try:
+      data = urlopen(url)
+      return data
+    except Exception, e:
+      i = i + 1
+      if i < 3:
+        sleep(i)
+      else:
+        raise e
+  
 class HeadingCsv(object):
   """A class for parsing Csv files with headings.
   
@@ -61,7 +74,7 @@ class Yahoo(EndOfDay):
     url = 'http://ichart.yahoo.com/table.csv?s=' + symbol
     url += '&a={0}&b={1}&c={2}'.format(start_date.month - 1, start_date.day, start_date.year)
     url += '&d={0}&e={1}&f={2}'.format(end_date.month - 1, end_date.day, end_date.year)
-    data = urlopen(url)
+    data = robust_urlopen(url)
     csv = HeadingCsv(data)
     for line in csv:
       dateparts = line['Date'].split('-')
@@ -80,7 +93,7 @@ class Yahoo(EndOfDay):
     self.dates.reverse()
     url = url.replace('table.csv', 'x')
     url += '&g=v&y=0'
-    data = urlopen(url)
+    data = robust_urlopen(url)
     self.dividends = [None] * len(self.dates)
     self.splits = [None] * len(self.dates)
     for line in data:

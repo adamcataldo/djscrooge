@@ -214,6 +214,10 @@ class BacktestComponent(object):
   def __init__(self, backtest):
     """Construct a backtest component with the given Backtest object."""
     self.backtest = backtest
+    
+  def after_initialization(self):
+    """Subclasses can override this to perform initialization."""
+    pass
 
 class Strategy(BacktestComponent):
   """The base class for objects making investment decisions.
@@ -353,7 +357,7 @@ class Backtest(object):
                taxes_class=Taxes, 
                strategy_class=Strategy, 
                end_of_day_class=EndOfDay,
-               portfolio=Portfolio(int(1e7)),
+               portfolio=None,
                cache=True):
     """Construct a Backtest object and run the simulation.
     
@@ -365,6 +369,9 @@ class Backtest(object):
     end_date -- The datetime.date object representing the last date to simulate.
     portfolio -- The Portfolio object representing the current holdings during the simulation.
     cache -- True if EndOfDay ojbects should be cached.
+    
+    Note that if the portfolio is unspecified, it will be defaulted to a portfolio with
+    $100,000 in cash.
     """
     self.start_date = start_date
     self.end_date = end_date
@@ -373,6 +380,8 @@ class Backtest(object):
     self.strategy = strategy_class(self)
     self.end_of_day_class = end_of_day_class
     self.portfolio = portfolio
+    if portfolio is None:
+      self.portfolio = Portfolio(int(1e7))
     self.__end_of_day_items = {}
     symbol_for_all_dates = Config().BACKTEST_SYMBOL_FOR_ALL_DATES
     self.__date_offsets = { symbol_for_all_dates : 0 }
@@ -380,6 +389,9 @@ class Backtest(object):
     self.dates = ge.dates 
     self.values = []
     self.cache = cache
+    self.commissions.after_initialization()
+    self.taxes.after_initialization()
+    self.strategy.after_initialization()
     for i in range(0,len(self.dates)):
       self.simulation_date = self.dates[i]
       total_stock_value = 0
@@ -413,8 +425,8 @@ class Backtest(object):
           continue
         for position in positions:
           total_stock_value += symbol_data.close_price * position.remaining_shares
-      portfolio.cash -= self.commissions.fees()
-      self.values.append(total_stock_value + portfolio.cash)
+      self.portfolio.cash -= self.commissions.fees()
+      self.values.append(total_stock_value + self.portfolio.cash)
             
   def buy_shares(self, symbol, shares, price_per_share):
     """Buy the specified number of shares of the given stock.
