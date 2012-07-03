@@ -18,22 +18,22 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from djscrooge.backtest import Backtest
 from datetime import date
-from djscrooge.library.end_of_day.postgres_cache import Postgres
 from djscrooge.charting import chart_backtest
 from djscrooge.library.strategy.biggest_loser import BiggestLoser
 from djscrooge.library.commissions.wells_pma_commissions import WellsPMACommissions
 from djscrooge.library.strategy.buy_hold_spy import BuyHoldSPY
 from djscrooge.library.taxes.california_taxes import CaliforniaTaxes
+from djscrooge.library.end_of_day.mongodb_cache import MongodbCache
 
 def main():
   start_date = date(2002,1,1)
   end_date = date(2012, 5, 15)
   buy_hold_test = Backtest(start_date, end_date, commissions_class=WellsPMACommissions, 
                       strategy_class=BuyHoldSPY, taxes_class=CaliforniaTaxes,
-                      end_of_day_class=Postgres)
+                      end_of_day_class=MongodbCache)
   moving_average_test = Backtest(start_date, end_date, commissions_class=WellsPMACommissions, 
                                  strategy_class=BiggestLoser, taxes_class=CaliforniaTaxes,
-                                 end_of_day_class=Postgres, cache=False)
+                                 end_of_day_class=MongodbCache, cache=False)
   chart_backtest(buy_hold_test, moving_average_test, labels=['Buy & Hold', 'BiggestLoser.'], colors=['g', 'b'], title='Strategy Comparison')
         
 if __name__ == '__main__':
