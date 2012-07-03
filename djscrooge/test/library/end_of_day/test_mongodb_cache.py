@@ -1,4 +1,4 @@
-"""This file contains the test_postgres_cache module of the DJ Scrooge backtesting API.
+"""This file contains the test_yahoo module of the DJ Scrooge backtesting API.
 Copyright (C) 2012  James Adam Cataldo
 
     This file is part of Pengoe.
@@ -15,32 +15,20 @@ Copyright (C) 2012  James Adam Cataldo
 
     You should have received a copy of the GNU General Public License
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
-    
+
 Dependencies: 
     proboscis: <https://github.com/rackspace/python-proboscis>
-    sqlalchemy: <http://www.sqlalchemy.org/>
 """
 from proboscis import test
-from proboscis.asserts import assert_equal
 from djscrooge.test.library.end_of_day.test_end_of_day import TestEndOfDay
-from djscrooge.library.end_of_day.postgres_cache import postgres
-from datetime import date
+from djscrooge.library.end_of_day.mongodb_cache import MongodbCache
 
-@test(depends_on_groups=['csv'])
-class TestPostgres(TestEndOfDay):
+@test()
+class TestMongodbCache(TestEndOfDay):
   """Tests the Yahoo EndOfDay class."""
   
   def __init__(self):
-    super(TestPostgres, self).__init__(postgres())   
-    
-  @test
-  def test_tie(self):
-    """Test that a single day for TIE works."""
-    eod_class = postgres()
-    eod = eod_class('TIE', date(2002, 1, 15), date(2002, 1, 15))
-    assert_equal(len(eod.close_prices), 1)
-    assert_equal(len(eod.dividends), 1)
-    assert_equal(len(eod.splits), 1)
+    super(TestMongodbCache, self).__init__(MongodbCache)   
 
 if __name__ == "__main__":
   from proboscis import TestProgram

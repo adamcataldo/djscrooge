@@ -24,9 +24,12 @@ class Config(object):
   
   BACKTEST_SYMBOL_FOR_ALL_DATES = 'GE'
 
-  POSTGRES_CONNECTION_STRING = 'postgresql://postgres@localhost/djscrooge'
-
   @property
-  def POSTGRES_CACHE_END_OF_DAY_SOURCE_CLASS(self):
+  def CACHE_END_OF_DAY_SOURCE_CLASS(self):
     import djscrooge.library.end_of_day.yahoo
     return djscrooge.library.end_of_day.yahoo.Yahoo
+  
+  @property
+  def MONGODB_CONNECTION(self):
+    import pymongo
+    return pymongo.Connection()

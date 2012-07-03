@@ -26,28 +26,28 @@ class TestEndOfDay(object):
   def __init__(self, end_of_day_subclass):
     self.__eod_class = end_of_day_subclass
   
-#  @test
-#  def test_prices(self):
-#    """Test the retrieved prices."""
-#    eod = self.__eod_class('GE', date(2012, 4, 27), date(2012, 5, 1))
-#    assert_equal(eod.open_prices, [1969, 1968, 1958])
-#    assert_equal(eod.high_prices, [1987, 1972, 1995])
-#    assert_equal(eod.low_prices, [1960, 1944, 1946])
-#    assert_equal(eod.close_prices, [1978, 1958, 1980])
-#    
-#  @test
-#  def test_dividends(self):
-#    """Test the retrieved dividends."""
-#    eod = self.__eod_class('GE', date(2012, 2, 22), date(2012, 2, 24))
-#    assert_equal(eod.close_prices, [1939, 1931, 1924])
-#    assert_equal(eod.dividends, [None, 17, None]) 
-#
-#  @test
-#  def test_splits(self):
-#    """Test the retrieved splits."""
-#    eod = self.__eod_class('GE', date(2000, 5, 5), date(2000, 5, 9))
-#    assert_equal(eod.close_prices, [15800, 5244, 5213])
-#    assert_equal(eod.splits, [None, Split(3,1), None]) 
+  @test
+  def test_prices(self):
+    """Test the retrieved prices."""
+    eod = self.__eod_class('GE', date(2012, 4, 27), date(2012, 5, 1))
+    assert_equal(eod.open_prices, [1969, 1968, 1958])
+    assert_equal(eod.high_prices, [1987, 1972, 1995])
+    assert_equal(eod.low_prices, [1960, 1944, 1946])
+    assert_equal(eod.close_prices, [1978, 1958, 1980])
+    
+  @test
+  def test_dividends(self):
+    """Test the retrieved dividends."""
+    eod = self.__eod_class('GE', date(2012, 2, 22), date(2012, 2, 24))
+    assert_equal(eod.close_prices, [1939, 1931, 1924])
+    assert_equal(eod.dividends, [None, 17, None]) 
+
+  @test
+  def test_splits(self):
+    """Test the retrieved splits."""
+    eod = self.__eod_class('GE', date(2000, 5, 5), date(2000, 5, 9))
+    assert_equal(eod.close_prices, [15800, 5244, 5213])
+    assert_equal(eod.splits, [None, Split(3,1), None]) 
     
   @test
   def test_dates(self):
@@ -55,10 +55,10 @@ class TestEndOfDay(object):
     eod = self.__eod_class('GE', date(2012, 5, 7), date(2012, 5, 9))
     assert_equal(eod.dates, [date(2012, 5, 7), date(2012, 5, 8), date(2012, 5, 9)])
     
-#  @test
-#  def test_number_of_splits(self):
-#    """Test the correct number of splits are downloaded."""
-#    eod = self.__eod_class('GE', date(1900, 1, 1), date(2012, 5, 12))
-#    assert_equal(len([x for x in eod.splits if x is not None]), 3)
-#    assert_equal(eod.splits[eod.get_index_from_date(date(2000, 5, 8))], Split(3,1))
+  @test
+  def test_number_of_splits(self):
+    """Test the correct number of splits are downloaded."""
+    eod = self.__eod_class('GE', date(1900, 1, 1), date(2012, 5, 12))
+    assert_equal(len([x for x in eod.splits if x is not None]), 3)
+    assert_equal(eod.splits[eod.get_index_from_date(date(2000, 5, 8))], Split(3,1))
   
