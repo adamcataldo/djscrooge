@@ -29,7 +29,11 @@ class Config(object):
     import djscrooge.library.end_of_day.yahoo
     return djscrooge.library.end_of_day.yahoo.Yahoo
   
+  __mongodb_connection = None
+  
   @property
   def MONGODB_CONNECTION(self):
-    import pymongo
-    return pymongo.Connection()
+    if Config.__mongodb_connection is None:
+      import pymongo
+      Config.__mongodb_connection = pymongo.Connection()
+    return Config.__mongodb_connection

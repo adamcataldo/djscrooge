@@ -96,3 +96,8 @@ class MongodbCache(EndOfDay):
     """Removes stale data from the cache."""
     self.db.prices.remove({'symbol' : self.symbol})
     self.db.symbols.remove({'symbol' : self.symbol})
+    
+    
+def warm_cache(symbol, end_date):
+  """Warm the cache with the given symbol, up to the given end date."""
+  MongodbCache(symbol, date(1900,1,1), end_date)
