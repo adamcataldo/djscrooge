@@ -18,66 +18,79 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from djscrooge.backtest import Strategy
 from djscrooge.config import Config
-from datetime import timedelta
+from datetime import timedelta, date
 import os
 from collections import namedtuple
+from djscrooge.library.end_of_day.mongodb_cache import warm_cache
+from bson.code import Code
 
 DailyReturn = namedtuple('DailyReturn', ['percentage', 'symbol'])
 
 class BiggestLoser(Strategy):
   
-  initialized = False
-  
-  def initialize_tables(self):
-    eod_class = self.backtest.end_of_day_class
-    start = self.backtest.start_date
-    symbol = Config().BACKTEST_SYMBOL_FOR_ALL_DATES
-    eod = eod_class(symbol, start - timedelta(21), start - timedelta(1))
-    start = eod.dates[len(eod.dates) - 2]
-    self.start_date_minus_one = eod.dates[len(eod.dates) - 1]
-    end = self.backtest.end_date
-    eod = eod_class(symbol, start, end)
-    self.biggest_loser = {}
-    for i in range(1, len(eod.dates)):
-      t = eod.dates[i]
-      percentage = ((1.0 * eod.adj_close_prices[i]) / eod.adj_close_prices[i - 1] - 1) * 100
-      self.biggest_loser[t] = DailyReturn(percentage, symbol)
+  def after_initialization(self):
     pwd = os.path.dirname(__file__)
-    with open (pwd + '/s_p_500_constituents', 'r') as f:
+    symbols = []
+    errors = 0.0
+    with open(pwd + '/s_p_500_constituents') as f:
       for line in f:
         symbol = line.strip()
-        if symbol == '':
-          continue
-        eod = eod_class(symbol, start, end)    
-        for i in range(1, len(eod.dates)):
-          t = eod.dates[i]
-          percentage = ((1.0 * eod.adj_close_prices[i]) / eod.adj_close_prices[i - 1] - 1) * 100
-          if percentage < self.biggest_loser[t].percentage:
-            self.biggest_loser[t] = DailyReturn(percentage, symbol)
+        if symbol != '':
+          try:
+            #warm_cache(symbol, self.backtest.end_date)
+            symbols.append(symbol)
+          except:
+            errors = errors + 1.0
+    mapper = Code("""
+    function () {
+      loss = this.open - this.close
+      emit(this.date, { "loss" : loss, "symbol" : this.symbol });
+    }
+    """)
+    reducer = Code("""
+    function (key, values) {
+      result = { "loss" : -Infinity, "symbol" : "NONE" };
+      for (var i = 0; i < values.length; i++) {
+        if (values[i].loss > result.loss) {
+          result.loss = values[i].loss;
+          result.symbol = values[i].symbol;
+        }
+      }
+      return result;
+    }
+    """)
+    connection = Config().MONGODB_CONNECTION
+    db = connection.djscrooge
+    query = { 'symbol' : {'$in' : symbols}, 
+             'date': {'$gte' : (self.backtest.start_date - timedelta(14)).toordinal(),
+                      '$lte' : self.backtest.end_date.toordinal()}}
+    results = db.prices.map_reduce(mapper, reducer, 'biggest_loser', query=query)
+    last = None
+    self.biggest_losers = {}
+    for result in results.find():
+      if last is None:
+        last = result
+      else:
+        key = date.fromordinal(int(result['_id']))
+        symbol = last['value']['symbol']
+        self.biggest_losers[key] = symbol
+        last = result
+    self.holding = None
   
   def execute(self):
-    if not self.initialized:
-      self.initialize_tables()
-      self.initialized = True
     backtest = self.backtest
     t = backtest.simulation_date
-    if t == self.backtest.dates[0]:
-      t_minus_one = self.start_date_minus_one
-    else:
-      dates = backtest.dates
-      eod = backtest.get_end_of_day(Config().BACKTEST_SYMBOL_FOR_ALL_DATES)
-      t_minus_one = dates[eod.get_index_from_date(t) - 1]
-    for symbol in list(backtest.portfolio.symbols):
-      open_prices = backtest.end_of_day_class(symbol, t, t).open_prices
-      if len(open_prices) == 0:
-        continue
-      price = open_prices[0]
-      for position in backtest.portfolio.get_positions(symbol):
-        shares = position.remaining_shares
-        backtest.sell_shares(symbol, shares, price)
-    symbol = self.biggest_loser[t_minus_one].symbol
-    eod = backtest.end_of_day_class(symbol, t, t)
-    if len(eod.open_prices) > 0:
-      price = eod.open_prices[0]
-      shares = int(backtest.portfolio.cash / price)
-      backtest.buy_shares(symbol, shares, price)
+    if self.holding != self.biggest_losers[t]:
+      if self.holding is not None:
+        open_prices = backtest.end_of_day_class(self.holding, t, t).open_prices
+        if len(open_prices) != 0:
+          price = open_prices[0]
+          for position in backtest.portfolio.get_positions(self.holding):
+            shares = position.remaining_shares
+            backtest.sell_shares(self.holding, shares, price)
+      self.holding = self.biggest_losers[t]
+      eod = backtest.end_of_day_class(self.holding, t, t)
+      if len(eod.open_prices) > 0:
+        price = eod.open_prices[0]
+        shares = int(backtest.portfolio.cash / price)
+        backtest.buy_shares(self.holding, shares, price)
