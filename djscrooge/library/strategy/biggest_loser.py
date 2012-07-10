@@ -37,7 +37,7 @@ class BiggestLoser(Strategy):
         symbol = line.strip()
         if symbol != '':
           try:
-            #warm_cache(symbol, self.backtest.end_date)
+            warm_cache(symbol, self.backtest.end_date)
             symbols.append(symbol)
           except:
             errors = errors + 1.0

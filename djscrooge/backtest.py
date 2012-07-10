@@ -347,6 +347,7 @@ class Backtest(object):
   strategy -- The Strategy object being tested.
   dates -- The dates tested
   values -- The daily closing values of the portfolio.
+  open_values -- The daily opening values of the portfolio. This is useful for statistical signifigance tests.
   start_date -- The start date of the simulation.
   end_date -- The end date of the simulation.
   end_of_day_class -- The class used to generate EndOfDay data.
@@ -388,6 +389,7 @@ class Backtest(object):
     ge = self.get_end_of_day(symbol_for_all_dates)
     self.dates = ge.dates 
     self.values = []
+    self.open_values = []
     self.cache = cache
     self.commissions.after_initialization()
     self.taxes.after_initialization()
@@ -395,7 +397,16 @@ class Backtest(object):
     for i in range(0,len(self.dates)):
       self.simulation_date = self.dates[i]
       total_stock_value = 0
+      total_stock_open_value = 0
       symbols = self.portfolio.symbols
+      for symbol in symbols:
+        positions = self.portfolio.get_positions(symbol)
+        symbol_data = self.get_close_data(symbol, self.dates[i])
+        if symbol_data is None:
+          continue
+        for position in positions:
+          total_stock_open_value += symbol_data.open_price * position.remaining_shares
+      self.open_values.append(total_stock_open_value + self.portfolio.cash)
       for symbol in symbols:
         positions = self.portfolio.get_positions(symbol)
         symbol_data = self.get_close_data(symbol, self.dates[i])
@@ -475,8 +486,8 @@ class Backtest(object):
       sell_helper(symbol, shares, price_per_share, open_position)
       
   def get_close_data(self, symbol, date):
-    """Returns a named tuple with close_price, dividend, and split data."""
-    CloseData = namedtuple('CloseData', ['close_price', 'dividend', 'split'])
+    """Returns a named tuple with close_price, dividend, split, and open_price data."""
+    CloseData = namedtuple('CloseData', ['close_price', 'dividend', 'split', 'open_price'])
     if self.cache:
       symbol_data = self.get_end_of_day(symbol)
       i = self.__end_of_day_items[Config().BACKTEST_SYMBOL_FOR_ALL_DATES].get_index_from_date(date)
@@ -486,12 +497,13 @@ class Backtest(object):
       dividend = symbol_data.dividends[k]
       split = symbol_data.splits[k]
       close_price = symbol_data.close_prices[k]
-      return CloseData(close_price, dividend, split)
+      open_price = symbol_data.open_prices[k]
+      return CloseData(close_price, dividend, split, open_price)
     else:
       eod = self.end_of_day_class(symbol, date, date)
       if len(eod.close_prices) == 0:
         return None
-      return CloseData(eod.close_prices[0], eod.dividends[0], eod.splits[0])
+      return CloseData(eod.close_prices[0], eod.dividends[0], eod.splits[0], eod.open_prices[0])
 
     
   def get_end_of_day(self, symbol):
