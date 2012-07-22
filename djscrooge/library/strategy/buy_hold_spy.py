@@ -27,12 +27,15 @@ class BuyHoldSPY(Strategy):
   at the begninning of the day, so it uses the opening price for purchases.
   """
   
+  def after_initialization(self):
+    self.symbol = 'SPY'
+  
   def execute(self):
     backtest = self.backtest
     cash = backtest.portfolio.cash
-    data = backtest.get_end_of_day('SPY')
+    data = backtest.get_end_of_day(self.symbol)
     index = data.get_index_from_date(backtest.simulation_date)
     open_price = data.open_prices[index]
     if cash > open_price:
-      backtest.buy_shares('SPY', cash / open_price, open_price)
+      backtest.buy_shares(self.symbol, cash / open_price, open_price)
     

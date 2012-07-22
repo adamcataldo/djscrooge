@@ -43,7 +43,9 @@ def test_hypothesis_test():
   base = power(2.0, 1.0/252.0)
   benchmark_backtest = get_backtest_from_open_values([1, 1*base, 1*base**2, 1*base**3])
   test_backtest = get_backtest_from_open_values([1, 1*base**2, 1*base**4, 1*base**6])
-  (actual_mean, actual_p_value) = hypothesis_test(test_backtest, benchmark_backtest)
+  benchmarkt_returns = get_log_daily_returns(benchmark_backtest)
+  test_returns = get_log_daily_returns(test_backtest)
+  (actual_mean, actual_p_value) = hypothesis_test(test_returns, benchmarkt_returns)
   assert_true(abs(actual_mean - 100.0) < 0.000001)
   assert_equal(actual_p_value, 0.0)
 

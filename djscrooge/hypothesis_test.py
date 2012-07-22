@@ -20,14 +20,14 @@ Copyright (C) 2012  James Adam Cataldo
 from numpy import mean, log, exp
 from random import randint
 
-def hypothesis_test(test_backtest, benchmark_backtest):
+def hypothesis_test(test_returns, benchmark_returns):
   """
   Tests the hypothesis that the test_backetst will NOT have a greater return than the benchmark_backtest.
   
   Parameters:
-    test_backtest -- The backtest of the strategy under test.
-    benchmark_backtest -- The backtest of the benchmark strategy, which must be computed over the same
-                          range of days as the test_backtest.
+    test_returns -- The naturual log of daily returns of the tested strategy, given as a list of floats.
+    benchmark_returns -- The natural log of daily returns of the benchmark for comparison, given as a list
+                         of floats.
     
   Returns: (excess_return, p_value):
     excess_return -- The average daily return of the strategy under test, after subtracting out the
@@ -36,11 +36,10 @@ def hypothesis_test(test_backtest, benchmark_backtest):
     p_value -- the probability the excess return was a fluke, given as a percentage.
   
   If the excess_return is positive, and the p_value is less than 5.0%, it is reasonable to infer that
-  the strategy under test will outperform the benchmark in the near future. 
+  the strategy under test will outperform the benchmark in the near future. Use the get_log_daily returns
+  funtion to compute the returns from a Backtest object.
   """
-  benchmark_returns = get_log_daily_returns(benchmark_backtest)
   benchmark_mean = mean(benchmark_returns)
-  test_returns = get_log_daily_returns(test_backtest)
   n = len(test_returns)
   for i in range(0, n):
     test_returns[i] -= benchmark_mean
@@ -65,9 +64,9 @@ def hypothesis_test(test_backtest, benchmark_backtest):
   return (test_mean, p_value * 100.0)
     
 def get_log_daily_returns(backtest):
-  """Gets the log daily returns of the given test.
+  """Gets the log daily returns of the given Backtest.
   
-  The log-daily return of day i is computed as ln(open_price[i+2] / open_price[i+1])
+  The log-daily return of day i is computed as ln(open_price[i+2] / open_price[i+1]).
   """
   returns = [0.0] * (len(backtest.open_values) - 2)
   for i in range(0, len(returns)):
