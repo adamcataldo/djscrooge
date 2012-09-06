@@ -91,6 +91,7 @@ class Yahoo(EndOfDay):
     self.close_prices.reverse()
     self.adj_close_prices.reverse()
     self.dates.reverse()
+    self.volumes.reverse()
     url = url.replace('table.csv', 'x')
     url += '&g=v&y=0'
     data = robust_urlopen(url)
@@ -107,4 +108,27 @@ class Yahoo(EndOfDay):
         datestr = parts[1].strip()
         dateobj = date(int(datestr[0:4]), int(datestr[4:6]), int(datestr[6:]))
         split = parts[2].strip().split(':')
-        self.splits[self.get_index_from_date(dateobj)] = Split(int(split[0]), int(split[1]))
+        try:
+          self.splits[self.get_index_from_date(dateobj)] = Split(int(split[0]), int(split[1]))
+        except TypeError:
+          if len(self.dates) > 0 and self.dates[0] < dateobj:
+            array_index = 1
+            while array_index < len(self.dates):
+              if self.dates[array_index] > dateobj:
+                break
+              else:
+                array_index += 1
+            ratio = int(split[1]) * 1.0 / int(split[0])
+            synthetic_price = int(self.close_prices[array_index - 1] * ratio)
+            self.dates.insert(array_index, dateobj)
+            self.open_prices.insert(array_index, synthetic_price)
+            self.high_prices.insert(array_index, synthetic_price)
+            self.low_prices.insert(array_index, synthetic_price)
+            self.close_prices.insert(array_index, synthetic_price)
+            self.adj_close_prices.insert(array_index, synthetic_price)
+            self.volumes.insert(array_index, 0)
+            self.dividends.insert(array_index, None)
+            self.splits.insert(array_index, Split(int(split[0]), int(split[1])))
+            self.initialize_date_index()
+          else:
+            raise

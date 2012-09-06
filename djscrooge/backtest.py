@@ -196,12 +196,15 @@ class EndOfDay(object):
     each date during a simulation.
     """
     if not hasattr(self, '_EndOfDay__date_index'):
-      self.__date_index = {}
-      for i in range(0, len(self.dates)):
-        self.__date_index[self.dates[i]] = i
+      self.initialize_date_index()
     if self.__date_index.has_key(dateobj):
       return self.__date_index[dateobj]
     return None
+  
+  def initialize_date_index(self):
+    self.__date_index = {}
+    for i in range(0, len(self.dates)):
+      self.__date_index[self.dates[i]] = i
 
 class BacktestComponent(object):
   """A class used in a backtest.

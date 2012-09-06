@@ -83,7 +83,7 @@ class MongodbCache(EndOfDay):
                'low' : eod.low_prices[i],
                'close' : eod.close_prices[i], 
                'adj_close' : eod.adj_close_prices[i],
-               'volume' : eod.adj_close_prices[i]}
+               'volume' : eod.volumes[i]}
       if eod.dividends[i] is not None:
         price['dividend'] = eod.dividends[i]
       if eod.splits[i] is not None:

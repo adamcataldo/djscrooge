@@ -56,6 +56,12 @@ class TestEndOfDay(object):
     assert_equal(eod.dates, [date(2012, 5, 7), date(2012, 5, 8), date(2012, 5, 9)])
     
   @test
+  def test_volumes(self):
+    """Test that volumes are retrieved correctly."""
+    eod = self.__eod_class('GE', date(2012, 5, 4), date(2012, 5, 8))
+    assert_equal(eod.volumes, [34799000, 35751000, 40295400])
+    
+  @test
   def test_number_of_splits(self):
     """Test the correct number of splits are downloaded."""
     eod = self.__eod_class('GE', date(1900, 1, 1), date(2012, 5, 12))

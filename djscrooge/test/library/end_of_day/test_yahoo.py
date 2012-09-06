@@ -25,6 +25,8 @@ from proboscis.asserts import assert_true
 from StringIO import StringIO
 from djscrooge.library.end_of_day.yahoo import HeadingCsv, Yahoo
 from djscrooge.test.library.end_of_day.test_end_of_day import TestEndOfDay
+from datetime import date
+from djscrooge.backtest import Split
 
 @test(groups=['csv'])
 class TestHeadingCsv(object):
@@ -51,14 +53,26 @@ class TestHeadingCsv(object):
         assert_equal(line['Baz'], '6')
       row += 1
     assert_equal(row, 2)
-
+    
 @test(depends_on_groups=['csv'])
 class TestYahoo(TestEndOfDay):
   """Tests the Yahoo EndOfDay class."""
   
   def __init__(self):
-    super(TestYahoo, self).__init__(Yahoo)   
-
+    super(TestYahoo, self).__init__(Yahoo)  
+    
+  @test
+  def test_split_only_days(self):
+    """Test days with a split and no stock price data."""
+    eod = Yahoo('WAT', date(2000, 8, 25), date(2000, 8, 30))
+    assert_equal(eod.open_prices, [15050, 15688 / 2, 7900])
+    assert_equal(eod.high_prices, [15844, 15688 / 2, 7962])
+    assert_equal(eod.low_prices, [15025, 15688 / 2, 7712])
+    assert_equal(eod.close_prices, [15688, 15688 / 2, 7762])
+    assert_equal(eod.volumes, [450800, 0, 491200])
+    assert_equal(eod.dividends, [None, None, None]) 
+    assert_equal(eod.splits, [None, Split(2,1), None])
+    
 if __name__ == "__main__":
   from proboscis import TestProgram
   TestProgram().run_and_exit()
