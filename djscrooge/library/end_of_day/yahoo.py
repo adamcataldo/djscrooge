@@ -70,6 +70,7 @@ class Yahoo(EndOfDay):
   
   def __init__(self, symbol, start_date, end_date):
     """Construct a new Yahoo EndOfDay object."""
+    self.symbol = symbol
     super(Yahoo, self).__init__(symbol, start_date, end_date)
     url = 'http://ichart.yahoo.com/table.csv?s=' + symbol
     url += '&a={0}&b={1}&c={2}'.format(start_date.month - 1, start_date.day, start_date.year)
@@ -132,3 +133,21 @@ class Yahoo(EndOfDay):
             self.initialize_date_index()
           else:
             raise
+          
+  def get_current_price_and_market_cap(self):
+    """Return the latest (price, market_cap) from Yahoo. Both are reported 
+    in dollar amounts, given as floats.
+    """
+    url = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=l1j1' % self.symbol
+    f = robust_urlopen(url)
+    data = f.read()
+    parts = data.split(',')
+    price = float(parts[0].replace('.', ''))
+    parts[1] = parts[1].strip()
+    if parts[1].endswith('M'):
+      market_cap = float(parts[1][0:-1]) * 1.0e6
+    elif parts[1].endswith('B'):
+      market_cap = float(parts[1][0:-1]) * 1.0e9
+    else:
+      market_cap = float(parts[1])
+    return (price, market_cap)
