@@ -19,6 +19,28 @@ Copyright (C) 2012  James Adam Cataldo
 from urllib2 import urlopen
 from lxml.etree import parse, HTMLParser
 from datetime import datetime
+from djscrooge.util.async_http_client import AsyncHttpClient
+from StringIO import StringIO
+from asyncore import loop
+
+class EdgarClient(AsyncHttpClient):
+  """An HTTP client used to fetch a single return from Edgar."""
+
+  def __init__(self, url, output_array, index):
+    """Create an Edgar client to write the pair (filing_date, period_date) on the 
+    output_array at index 'index'."""
+    self.output_array = output_array
+    self.index = index
+    AsyncHttpClient.__init__(self, url)
+  
+  def handle_completion(self, response_string):
+    date_format = '%Y-%m-%d'
+    report = parse(StringIO(response_string), HTMLParser())    
+    filing_date =report.xpath('id("formDiv")/div[2]/div[1]/div[2]')[0].text
+    filing_date = datetime.strptime(filing_date, date_format).date()
+    period_date = report.xpath('id("formDiv")/div[2]/div[2]/div[2]')[0].text
+    period_date = datetime.strptime(period_date, date_format).date()                                    
+    self.output_array[self.index] = (filing_date, period_date)    
   
 class Edgar(object):
   """Class for discovering the latest financial statements at a given date.
@@ -78,18 +100,12 @@ class Edgar(object):
     else:
       entry_path = '/a:feed/a:entry[a:category/@term="10-Q"]'
     entries = ten_k_feed.xpath(entry_path, namespaces = ns)
-    dates = []
-    html_parser = HTMLParser()
-    date_format = '%Y-%m-%d'
-    for entry in entries:
+    dates = [None] * len(entries)
+    for i in range(0, len(entries)):
+      entry = entries[i]
       href = entry.xpath('a:link/@href', namespaces = ns)[0]
-      f = urlopen(href)
-      report = parse(f, html_parser)    
-      filing_date =report.xpath('id("formDiv")/div[2]/div[1]/div[2]')[0].text
-      filing_date = datetime.strptime(filing_date, date_format).date()
-      period_date = report.xpath('id("formDiv")/div[2]/div[2]/div[2]')[0].text
-      period_date = datetime.strptime(period_date, date_format).date()                                    
-      dates.append((filing_date, period_date))
+      EdgarClient(href, dates, i)
+    loop()
     dates.reverse()
     return dates
   
@@ -114,4 +130,28 @@ class Edgar(object):
       else:
         r = (r - l) / 2 + l
     return self.dates[r][1]
+  
+  def get_filing_date(self, period_end_date):
+    """Given the period end date, returns the filing date.
+    
+    This raises a ValueError if the period_end_date is not found.
+    """
+    n = len(self.dates)
+    if n == 0:
+      raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))
+    if self.dates[0][1] > period_end_date:
+      raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))
+    l = 0
+    r = n - 1
+    while l < r:
+      if period_end_date == self.dates[r][1]:
+        l = r
+      elif period_end_date >= self.dates[(r - l) / 2 + l + 1][1]:
+        l = (r - l) / 2 + l + 1
+      else:
+        r = (r - l) / 2 + l
+    if self.dates[r][1] == period_end_date:
+      return self.dates[r][0]
+    else:
+      raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))      
       

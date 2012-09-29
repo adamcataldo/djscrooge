@@ -18,7 +18,7 @@ Copyright (C) 2012  James Adam Cataldo
 """
 
 from proboscis import test
-from proboscis.asserts import assert_equal
+from proboscis.asserts import assert_equal, assert_raises
 from djscrooge.library.financials.edgar import Edgar
 from datetime import date
 
@@ -26,15 +26,28 @@ from datetime import date
 class TestEdgar():
   """Tests for the Edgar class."""
   
-  @test
+  @test(groups=['setup'])
+  def setup_edgar_object(self):
+    """Setup an Edgar object for testing."""
+    self.edgar_obj = Edgar('GOOG')
+  
+  @test(depends_on_groups=['setup'])
   def test_get_latest_filing(self):
     """Test the get_latest_filing method."""
-    x = Edgar('GOOG')
+    x = self.edgar_obj
     assert_equal(x.get_latest_filing(date(2011, 10, 26)), date(2011, 6, 30))
     assert_equal(x.get_latest_filing(date(2011, 10, 27)), date(2011, 9, 30))
     assert_equal(x.get_latest_filing(date(2012, 1, 26)), date(2011, 9, 30))
     assert_equal(x.get_latest_filing(date(2012, 1, 27)), date(2011, 12, 31))
     
+  @test(depends_on_groups=['setup'])
+  def test_get_filing_date(self):
+    """Test the test_get_filing_date method."""
+    x = self.edgar_obj
+    assert_equal(x.get_filing_date(date(2011, 9, 30)), date(2011, 10, 26))
+    assert_equal(x.get_filing_date(date(2011, 12, 31)), date(2012, 1, 26))
+    assert_raises(ValueError, x.get_filing_date, date(2012, 1, 1))
+
 if __name__ == "__main__":
   from proboscis import TestProgram
   TestProgram().run_and_exit()
