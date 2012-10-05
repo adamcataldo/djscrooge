@@ -24,9 +24,7 @@ from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_true
 from proboscis.asserts import assert_false
 from proboscis.asserts import assert_raises
-from djscrooge.data_types import OrderedSet
-from djscrooge.data_types import iterator_to_list
-from djscrooge.data_types import index_of_sorted_list
+from djscrooge.util.data_types import OrderedSet, glb_index_in_sorted_list, iterator_to_list, index_in_sorted_list
 
 @test
 class TestOrderedSet(object):
@@ -126,16 +124,27 @@ def test_iterator_to_list():
   assert_equal(my_list, expected)
   
 @test
-def test_index_of_sorted_list():
-  """Test the index_of_sorted_list function."""
+def test_index_in_sorted_list():
+  """Test the index_in_sorted_list function."""
   list = [1, 3, 5, 7, 9, 11]
   x = 5
   expected = 2
-  assert_equal(index_of_sorted_list(x, list), expected)
+  assert_equal(index_in_sorted_list(x, list), expected)
   x = 4
   expected = -1
-  assert_equal(index_of_sorted_list(x, list), expected)
-   
+  assert_equal(index_in_sorted_list(x, list), expected)
+
+@test
+def test_glb_index_in_sorted_list():
+  """Test the glb_index_in_sorted_list function."""
+  list = [1, 3, 5, 7, 9, 11]
+  x = 5
+  expected = 2
+  assert_equal(glb_index_in_sorted_list(x, list), expected)
+  x = 4
+  expected = 1
+  assert_equal(glb_index_in_sorted_list(x, list), expected)
+
 if __name__ == "__main__":
   from proboscis import TestProgram
   TestProgram().run_and_exit()

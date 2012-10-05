@@ -21,7 +21,7 @@ Copyright (C) 2012  James Adam Cataldo
     SYMBOL_FOR_ALL_DATES -- The stock symbol used to retrieve all possible
                             simulation dates
 """
-from djscrooge.data_types import OrderedSet, iterator_to_list, index_of_sorted_list
+from djscrooge.util.data_types import OrderedSet, iterator_to_list, index_in_sorted_list
 import math    
 from djscrooge.config import Config
 from collections import namedtuple
@@ -521,5 +521,5 @@ class Backtest(object):
       self.__end_of_day_items[symbol] = self.end_of_day_class(symbol, self.start_date, self.end_date)
     if not self.__date_offsets.has_key(symbol):
       dates = self.__end_of_day_items[Config().BACKTEST_SYMBOL_FOR_ALL_DATES].dates
-      self.__date_offsets[symbol] = index_of_sorted_list(self.__end_of_day_items[symbol].dates[0], dates)
+      self.__date_offsets[symbol] = index_in_sorted_list(self.__end_of_day_items[symbol].dates[0], dates)
     return self.__end_of_day_items[symbol]

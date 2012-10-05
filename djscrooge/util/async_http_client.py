@@ -49,7 +49,10 @@ class AsyncHttpClient(dispatcher):
   def handle_close(self):
     """Close the socket and call the handle_completion method."""
     self.close()
-    self.handle_completion(self.read_buffer.getvalue())
+    x = self.read_buffer.getvalue()
+    i = x.find("\r\n\r\n")
+    val = x[i+4:]
+    self.handle_completion(val)
 
   def writable(self):
     """Return True until the request has been made."""

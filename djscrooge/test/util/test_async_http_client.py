@@ -17,7 +17,7 @@ Copyright (C) 2012  James Adam Cataldo
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
 """
 from proboscis import test
-from proboscis.asserts import assert_equal, assert_raises
+from proboscis.asserts import assert_equal, assert_raises, assert_false
 from djscrooge.util.async_http_client import AsyncHttpClient
 from asyncore import loop
 
@@ -46,6 +46,7 @@ class WikiClient(AsyncHttpClient):
   def handle_completion(self, response_string):
     """Handle the retrieved data."""
     self.result_array[1] = 'Wikipedia' in response_string
+    self.response_string = response_string
     
 @test
 class TestAsyncHttpClient(object):
@@ -59,6 +60,15 @@ class TestAsyncHttpClient(object):
     WikiClient(result_array)
     loop()
     assert_equal(result_array, [True, True])
+    
+  @test
+  def test_headers(self):
+    """Tests no headers present in reponse."""
+    result_array = [False, False]
+    x = WikiClient(result_array)
+    loop()
+    assert_false('HTTP/' in x.response_string)
+  
     
 if __name__ == "__main__":
   from proboscis import TestProgram

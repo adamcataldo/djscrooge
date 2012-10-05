@@ -18,10 +18,11 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from urllib2 import urlopen
 from lxml.etree import parse, HTMLParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from djscrooge.util.async_http_client import AsyncHttpClient
 from StringIO import StringIO
 from asyncore import loop
+from djscrooge.util.data_types import glb_index_in_sorted_list
 
 class EdgarClient(AsyncHttpClient):
   """An HTTP client used to fetch a single return from Edgar."""
@@ -61,20 +62,25 @@ class Edgar(object):
     m = len(quarterly_dates)
     i = 0
     j = 0
-    self.dates = []
+    dates = []
     while i < n or j < m:
       if i == n:
-        self.dates.append(quarterly_dates[j])
+        dates.append(quarterly_dates[j])
         j += 1
       elif j == m:
-        self.dates.append(annual_dates[i])
+        dates.append(annual_dates[i])
         i += 1
       elif annual_dates[i][0] <= quarterly_dates[j][0]:
-        self.dates.append(annual_dates[i])
+        dates.append(annual_dates[i])
         i += 1
       else:
-        self.dates.append(quarterly_dates[j])
+        dates.append(quarterly_dates[j])
         j += 1
+    self.filing_dates = [x[0] for x in dates]
+    self.period_end_dates = [x[1] for x in dates]
+    self.period_to_filing = {}
+    for i in range(0, len(self.period_end_dates)):
+      self.period_to_filing[self.period_end_dates[i]] = self.filing_dates[i]
   
   def __get_reporting_dates(self, is_annual):
     """Gets all annual or quarterly financial statement reporting dates.
@@ -115,43 +121,16 @@ class Edgar(object):
     This returns None if the given simulation_date occurs before the earliest filing
     with Edgar.
     """
-    n = len(self.dates)
-    if n == 0:
+    i = glb_index_in_sorted_list(simulation_date - timedelta(1), self.filing_dates)
+    if i == -1:
       return None
-    if self.dates[0][0] >= simulation_date:
-      return None
-    l = 0
-    r = n - 1
-    while l < r:
-      if simulation_date > self.dates[r][0]:
-        l = r
-      elif simulation_date > self.dates[(r - l) / 2 + l + 1][0]:
-        l = (r - l) / 2 + l + 1
-      else:
-        r = (r - l) / 2 + l
-    return self.dates[r][1]
+    return self.period_end_dates[i]
   
   def get_filing_date(self, period_end_date):
     """Given the period end date, returns the filing date.
     
     This raises a ValueError if the period_end_date is not found.
     """
-    n = len(self.dates)
-    if n == 0:
+    if not self.period_to_filing.has_key(period_end_date):
       raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))
-    if self.dates[0][1] > period_end_date:
-      raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))
-    l = 0
-    r = n - 1
-    while l < r:
-      if period_end_date == self.dates[r][1]:
-        l = r
-      elif period_end_date >= self.dates[(r - l) / 2 + l + 1][1]:
-        l = (r - l) / 2 + l + 1
-      else:
-        r = (r - l) / 2 + l
-    if self.dates[r][1] == period_end_date:
-      return self.dates[r][0]
-    else:
-      raise ValueError('No filing for %s.' % period_end_date.strftime('%Y-%m-%d'))      
-      
+    return self.period_to_filing[period_end_date]

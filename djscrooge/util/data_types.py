@@ -142,7 +142,7 @@ def iterator_to_list(iterator):
     result.append(x)
   return result
 
-def index_of_sorted_list(element, sorted_list, left=0, right=None):
+def index_in_sorted_list(element, sorted_list, left=0, right=None):
   """Returns the index of the given element in the sorted list, or -1 if the element is not found.
   
   This uses a binary search, so the list must be sorted on a data type for which comparison
@@ -160,3 +160,23 @@ def index_of_sorted_list(element, sorted_list, left=0, right=None):
     else:
       return mid
   return -1
+
+def glb_index_in_sorted_list(element, sorted_list, left=0, right=None):
+  """Returns the index of the greatest-lower-bound of the element in 
+  the sorted list, or -1 if the element is less than all elements in the list.
+  
+  This uses a binary search, so the list must be sorted on a data type for which comparison
+  operators are well defined.
+  """
+  if right is None:
+    right = len(sorted_list) - 1
+  if len(sorted_list) == 0 or sorted_list[left] > element:
+    return -1
+  while left < right:
+    if element >= sorted_list[right]:
+      left = right
+    elif element >= sorted_list[(right - left) / 2 + left + 1]:
+      left = (right - left) / 2 + left + 1
+    else:
+      right = (right - left) / 2 + left
+  return right
