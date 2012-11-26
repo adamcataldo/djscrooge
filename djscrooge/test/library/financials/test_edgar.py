@@ -18,7 +18,7 @@ Copyright (C) 2012  James Adam Cataldo
 """
 
 from proboscis import test
-from proboscis.asserts import assert_equal, assert_raises
+from proboscis.asserts import assert_equal, assert_raises, assert_false
 from djscrooge.library.financials.edgar import Edgar
 from datetime import date
 
@@ -47,6 +47,30 @@ class TestEdgar():
     assert_equal(x.get_filing_date(date(2011, 9, 30)), date(2011, 10, 26))
     assert_equal(x.get_filing_date(date(2011, 12, 31)), date(2012, 1, 26))
     assert_raises(ValueError, x.get_filing_date, date(2012, 1, 1))
+    
+  @test
+  def test_sanitation(self):
+    """Test dates that are infered through sanitation."""
+    edgar_obj = Edgar('WMT')
+    try:
+      assert_equal(edgar_obj.get_filing_date(date(2009,1,31)), date(2009,4,1))
+    except ValueError:
+      assert_false(True, 'Unable to find filing date for period ending 2009-01-31.')
+      
+  @test
+  def test_bad_end_dates(self):
+    """Test that bad period end dates are properly sanitized."""
+    edgar_obj = Edgar('ANF')
+    assert_equal(edgar_obj.period_end_dates[2], date(1997,4,30))
+    assert_equal(edgar_obj.period_end_dates[8], date(1998,10,31))
+    assert_equal(edgar_obj.period_end_dates[9], date(1999,1,31))
+    
+  @test
+  def test_really_bad_end_dates(self):
+    """Test some obviously bad end dates are properly sanitized."""
+    edgar_obj = Edgar('ADBE')
+    assert_equal(edgar_obj.period_end_dates[54], date(2008,5,31))
+    
 
 if __name__ == "__main__":
   from proboscis import TestProgram

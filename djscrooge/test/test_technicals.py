@@ -16,12 +16,12 @@ Copyright (C) 2012  James Adam Cataldo
     You should have received a copy of the GNU General Public License
     along with Pengoe.  If not, see <http://www.gnu.org/licenses/>.
 """
+from djscrooge.technicals import simple_moving_average, accumulate, \
+  channel_breakout, channel_normalization, on_balance_volume, \
+  accumulation_distribution_volume, money_flow, negative_volume_index, \
+  advance_decline_ratio, net_volume_ratio, high_low_ratio, capm
 from proboscis import test
-from proboscis.asserts import assert_equal
-from djscrooge.technicals import simple_moving_average, accumulate,\
-  channel_breakout, channel_normalization, on_balance_volume,\
-  accumulation_distribution_volume, money_flow, negative_volume_index,\
-  advance_decline_ratio, net_volume_ratio, high_low_ratio
+from proboscis.asserts import assert_equal, assert_true
 
 @test
 def test_simple_moving_average():
@@ -129,6 +129,15 @@ def test_high_low_ratio():
   expected = [-0.4, 0.0, 1.0 / 3.0]
   assert_equal(actual, expected)
 
+@test
+def test_capm():
+  """Test the camp function."""
+  investment = [1.0, 1.21, 4.84]
+  market = [1.0, 1.1, 2.2]
+  (alpha, beta, r) = capm(investment, market)
+  assert_true(abs(alpha) < 1.0e-8)
+  assert_true(abs(beta - 2.0) < 1.0e-8)
+  assert_true(abs(r - 1.0) < 1.0e-8)
 
 if __name__ == "__main__":
   from proboscis import TestProgram

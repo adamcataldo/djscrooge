@@ -28,6 +28,8 @@ class CaliforniaTaxes(Taxes):
   current_year = 1900
   long_term_gain = 0
   short_term_gain = 0
+  long_term_paid = 0
+  short_term_paid = 0
   
   def is_long_term(self, purchase_date):
     if purchase_date.year % 4 == 0:
@@ -38,37 +40,30 @@ class CaliforniaTaxes(Taxes):
       return True
     return False
   
-  def get_tax(self, total_gain, new_gain, tax_rate):
-    if new_gain >= 0:
-      if total_gain >= new_gain:
-        return (total_gain, int(round(tax_rate * new_gain)))
-      elif total_gain >= 0:
-        return (total_gain, int(round(tax_rate * total_gain)))
-      else:
-        return (total_gain, 0)
-    else:
-      if total_gain >= 0:
-        return (total_gain, int(round(tax_rate * new_gain)))
-      elif total_gain >= new_gain:
-        return (total_gain, int(round(tax_rate * (total_gain - new_gain))))
-      else:
-        return (total_gain, 0)
-  
+  def get_tax(self, new_gain, tax_rate, total_gain, total_paid):
+    total_gain += new_gain
+    total_tax = tax_rate * total_gain
+    tax_owed = int(total_tax - total_paid)
+    if tax_owed < 0 and -tax_owed > total_paid:
+      tax_owed = -total_paid
+    total_paid += tax_owed
+    return (tax_owed, total_gain, total_paid)
+      
   def sell_tax(self, symbol, shares, gain_per_share, purchase_date):
     if purchase_date.year != self.current_year:
       self.current_year = purchase_date.year
       self.long_term_gain = 0
       self.short_term_gain = 0
+      self.long_term_paid = 0
+      self.short_term_paid = 0
     gain = shares * gain_per_share
     if self.is_long_term(purchase_date):
       tax_rate = 0.15 + 0.093
-      self.long_term_gain += gain
-      (self.long_term_gain, tax) = self.get_tax(self.long_term_gain, gain, tax_rate)
+      (tax, self.long_term_gain, self.long_term_paid) = self.get_tax(gain, tax_rate, self.long_term_gain, self.long_term_paid)
       return tax
     else:
       tax_rate = 0.35 + 0.093
-      self.short_term_gain += gain
-      (self.short_term_gain, tax) = self.get_tax(self.short_term_gain, gain, tax_rate)
+      (tax, self.short_term_gain, self.short_term_paid) = self.get_tax(gain, tax_rate, self.short_term_gain, self.short_term_paid)
       return tax
 
   def dividend_tax(self, symbol, amount, purchase_date):

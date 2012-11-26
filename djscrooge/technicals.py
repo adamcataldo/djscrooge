@@ -18,6 +18,8 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from copy import copy
 from numpy import mean
+from math import log
+from scipy.stats.stats import linregress
 
 def simple_moving_average(values, window):
   """Calculates a simple moving average of the values.
@@ -191,3 +193,21 @@ def high_low_ratio(advancing_issues, declining_issues, unchanged_issues, new_hig
     result[i] = (new_highs[i] - new_lows[i]) * 1.0 / (advancing_issues[i] + declining_issues[i] + unchanged_issues[i])
   return result
 
+def capm(investment, market, risk_free_return=0):
+  """Computes historical CAPM paramaters, using log returns, of the investment over the market.
+  
+  investment -- The daily prices of the investment under analysis.
+  market -- The daily prices of the market investment.
+  risk_free_return -- The risk-free return over the period of consideration, given as a fraction.
+  
+  Returns (alpha, beta, r), where r is the r-value.""" 
+  alr = log(1.0 + risk_free_return)
+  investment_returns = [log(1.0 * b / a) - alr for (a,b) in zip(investment[0:-1], investment[1:])]
+  market_returns = [log(1.0 * b / a) - alr for (a,b) in zip(market[0:-1], market[1:])]
+  x = linregress(market_returns, investment_returns)
+  beta = x[0]
+  alpha = x[1]
+  r = x[2]
+  return (alpha, beta, r)
+  
+  

@@ -54,6 +54,9 @@ class OpenPosition(object):
     self.purchase_date = purchase_date
     self.cost_basis = cost_basis
     self.remaining_shares = remaining_shares
+    
+  def __str__(self):
+    return "%s--bought: %d; price: %d; %s; shares: %d" % (self.symbol, self.purchase_date, self.cost_basis, self.remaining_shares)
 
 class Portfolio(object):
   """A class representing a portfolio of cash and open positions.
@@ -68,6 +71,21 @@ class Portfolio(object):
     self.cash = cash
     self.symbols = set([])
     self.__positions = {}
+    
+  def get_cash(self):
+    return self.__cash
+        
+  def set_cash(self, value):
+    if not type(value) == int:
+      raise ValueError('The cash must be an integer, representing cents.')
+    if value < 0:
+      raise ValueError('The portfolio cash must be positive.')
+    self.__cash = value
+      
+  def del_cash(self):
+    del self.__cash
+
+  cash = property(get_cash, set_cash, del_cash, "Cash in portfolio.")  
     
   def add_position(self, open_position):
     """Adds the given OpenPosition object to the set of open positions in this Portfolio
@@ -90,6 +108,14 @@ class Portfolio(object):
     underlying OpenPosition.
     """
     return iterator_to_list(self.__positions[symbol])
+  
+  def get_total_shares(self, symbol):
+    """Gets the total shares remaining for the given symbol."""
+    positions = self.get_positions(symbol)
+    total = 0
+    for position in positions:
+      total += position.remaining_shares
+    return total
   
   def remove_position(self, open_position):
     """Remove the given OpenPostion object from this portfolio.

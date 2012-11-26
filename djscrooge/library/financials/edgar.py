@@ -18,11 +18,12 @@ Copyright (C) 2012  James Adam Cataldo
 """
 from urllib2 import urlopen
 from lxml.etree import parse, HTMLParser
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from djscrooge.util.async_http_client import AsyncHttpClient
 from StringIO import StringIO
 from asyncore import loop
 from djscrooge.util.data_types import glb_index_in_sorted_list
+from math import ceil
 
 class EdgarClient(AsyncHttpClient):
   """An HTTP client used to fetch a single return from Edgar."""
@@ -57,7 +58,9 @@ class Edgar(object):
     """Create a new Edgar object for the given ticker symbol."""
     self.symbol = symbol
     annual_dates = self.__get_reporting_dates(True)
+    self.__sanitize_filing_equals_period(annual_dates, 12)
     quarterly_dates = self.__get_reporting_dates(False)
+    self.__sanitize_filing_equals_period(quarterly_dates, 3)
     n = len(annual_dates)
     m = len(quarterly_dates)
     i = 0
@@ -70,18 +73,21 @@ class Edgar(object):
       elif j == m:
         dates.append(annual_dates[i])
         i += 1
-      elif annual_dates[i][0] <= quarterly_dates[j][0]:
+      elif annual_dates[i][1] <= quarterly_dates[j][1]:
         dates.append(annual_dates[i])
         i += 1
       else:
         dates.append(quarterly_dates[j])
         j += 1
+    self.__sanitize_start_of_month_filing_dates(dates)
+    self.__sanitize_off_period_end_dates(dates)
+    self.__validate_filing_dates(dates)
     self.filing_dates = [x[0] for x in dates]
     self.period_end_dates = [x[1] for x in dates]
     self.period_to_filing = {}
     for i in range(0, len(self.period_end_dates)):
       self.period_to_filing[self.period_end_dates[i]] = self.filing_dates[i]
-  
+      
   def __get_reporting_dates(self, is_annual):
     """Gets all annual or quarterly financial statement reporting dates.
     
@@ -115,6 +121,106 @@ class Edgar(object):
     dates.reverse()
     return dates
   
+  def __sanitize_filing_equals_period(self, dates, offset):
+    """Sanitize any dates where filing_date == period_end_date.
+    
+    Note that this may fix some edge cases but not others.
+    """
+    for i in range(0, len(dates)):
+      if dates[i][0] == dates[i][1]:
+        if i > 0:
+          test_month = dates[i-1][1].month + offset
+          while test_month > 12:
+            test_month -= 12
+          if dates[i][1].month != test_month:
+            new_month = dates[i-1][1].month + offset + 1
+            new_year = dates[i-1][1].year
+            while (new_month > 12):
+              new_month -= 12
+              new_year += 1
+            new_period_end_date = date(new_year, new_month, 1) - timedelta(1)
+            dates[i] = (dates[i][0], new_period_end_date)
+          else:
+            delta = timedelta(int(ceil(365.25 * offset / 12.0)))
+            dates[i] = (dates[i-1][0] + delta, dates[i][1])
+        else:
+          test_month = dates[i+1][1].month - offset
+          while test_month < 1:
+            test_month += 12
+          if dates[i][1].month != test_month:
+            new_month = dates[i+1][1].month - offset + 1
+            new_year = dates[i+1][1].year
+            while (new_month < 1):
+              new_month += 12
+              new_year -= 1
+            new_period_end_date = date(new_year, new_month, 1) - timedelta(1)
+            dates[i] = (dates[i][0], new_period_end_date)
+          else:
+            delta = timedelta(int(ceil(365.25 * offset / 12.0)))
+            dates[i] = (dates[i+1][0] - delta, dates[i][1])
+            
+  def __sanitize_start_of_month_filing_dates(self, dates):
+    """Sanitize any dates where period_end_date is not at the end of the month.
+    """
+    for i in range(0, len(dates)):
+      if (dates[i][1] + timedelta(1)).day != 1:
+        if dates[i][1].day < 15:
+          dates[i] = (dates[i][0], date(dates[i][1].year, dates[i][1].month, 1) - timedelta(1))
+        else:
+          month = dates[i][1].month + 1
+          year = dates[i][1].year
+          if month > 12:
+            month = month - 12
+            year = year + 1
+          dates[i] = (dates[i][0], date(year, month, 1) - timedelta(1))
+          
+  def __sanitize_off_period_end_dates(self, dates):
+    for i in range(1, len(dates) - 1):
+      if (not self.__is_behind_by_months(dates[i-1][1], dates[i][1], 3)):
+        if (self.__is_behind_by_months(dates[i-1][1], dates[i+1][1], 6)):
+          month = dates[i-1][1].month + 4
+          year = dates[i-1][1].year
+          if month > 12:
+            year = year + 1
+            month = month - 12
+          dates[i] = (dates[i][0], date(year, month, 1) - timedelta(1))
+        elif (self.__is_behind_by_months(dates[i][1], dates[i+1][1], 3)):
+          month = dates[i][1].month - 2
+          year = dates[i][1].year
+          if month < 1:
+            year = year - 1
+            month = month + 12
+          dates[i-1] = (dates[i][0], date(year, month, 1) - timedelta(1))
+        else:
+          raise ValueError('No obvious recovery from bad end date: ' + dates[i][1].strftime('%Y-%m-%d'))
+    if len(dates) > 1:
+      n = len(dates)
+      if (not self.__is_behind_by_months(dates[n-2][1], dates[n-1][1], 3)):
+        month = dates[n-2][1].month + 4
+        year = dates[n-2][1].year
+        if month > 12:
+          year = year + 1
+          month = month - 12
+        dates[n-1] = (dates[n-1][0], date(year, month, 1) - timedelta(1))
+        
+  def __validate_filing_dates(self, dates):
+    """Validate all filing dates occur AFTER the corresponding period end date."""
+    for x in dates:
+      if x[0] <= x[1]:
+        raise ValueError('Filing date %s came after period end date %s.' % (x[0].strftime('%Y-%m-%d'), x[1].strftime('%Y-%m-%d')))
+  
+  def __is_behind_by_months(self, x, y, n):
+    """Return true iff x's month is n months behind y's month.
+    
+    n is assumed to be positive.
+    """
+    month = x.month + n
+    year = x.year
+    while month > 12:
+      month -= 12
+      year += 1
+    return (y.month == month) and (y.year == year)
+          
   def get_latest_filing(self, simulation_date):
     """Given the simulation_date, return the last filing period submitted to Edgar.
     
